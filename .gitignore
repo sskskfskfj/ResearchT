@@ -2,7 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
-
+eng_ko_dataset.csv
 # C extensions
 *.so
 

@@ -1,21 +1,18 @@
 from datasets import load_dataset
 
+import pandas as pd
 import random
+import os
 
 
-
-def load_arxiv_dataset():
-    dataset = load_dataset("nick007x/arxiv-papers")["train"]["abstract"]
+def get_dataset():
+    dataset = load_dataset("lemon-mint/korean_parallel_sentences_v1.1")
+    dataset = dataset["train"].train_test_split(test_size=0.2, seed=42)
+    
     return dataset
 
 
-def random_sampling(dataset, stratum = 100, seed=42):
-    random.seed(seed)
-    dataset_size = len(dataset)
-    
-    
-
-
 if __name__ == "__main__":
-    dataset = load_arxiv_dataset()
-    
+    dataset = get_dataset()
+    print(len(dataset["train"]))
+    print(len(dataset["test"]))

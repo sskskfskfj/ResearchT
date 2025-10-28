@@ -1,8 +1,6 @@
-from model.translation_model import NLLBTranslator
-
 
 def main():
-    translator = NLLBTranslator()
+    print("Hello, World!")
     
 
 

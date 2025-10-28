@@ -1,39 +1,49 @@
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from transformers import pipeline
+from transformers import (
+    AutoTokenizer, 
+    AutoModelForSeq2SeqLM, 
+    pipeline,
+    Seq2SeqTrainingArguments,
+    Seq2SeqTrainer,
+)
 from config.secret import secret
 
 
 HUGGINGFACE_TOKEN = secret.huggingface_token
 
 
-def init_teacher_model(model_name : str = "facebook/nllb-200-distilled-1.3B"):
+def init_model(model_name : str = "facebook/nllb-200-distilled-1.3B"):
     tokenizer = AutoTokenizer.from_pretrained(model_name, token = HUGGINGFACE_TOKEN)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name, token = HUGGINGFACE_TOKEN)
-    model.eval()
     
     return tokenizer, model
 
 
-if __name__ == "__main__":
-    tokenizer, model = init_teacher_model()
-
-    text = """The dominant sequence transduction models are based on complex recurrent or
-    convolutional neural networks that include an encoder and a decoder."""
-    encoded = tokenizer(text, return_tensors = "pt", padding = True, truncation = True)
-    generated = model.generate(**encoded, forced_bos_token_id = tokenizer.convert_tokens_to_ids("kor_Hang"))
-
-    translated = tokenizer.decode(generated[0], skip_special_tokens = True)
-    print(translated)
-
-
-    translator = pipeline(
-        "translation", 
-        model="facebook/nllb-200-distilled-1.3B", 
-        src_lang="eng_Latn", 
-        tgt_lang="kor_Hang"
+def train_model(model, tokenizer, tokenized_datasets, data_collator):
+    training_args = Seq2SeqTrainingArguments(
+        output_dir = "results",
+        evaluation_strategy = "epoch",
+        learning_rate = 2e-5,
+        per_device_train_batch_size = 16,
+        per_device_eval_batch_size = 16,
+        num_train_epochs = 3,
+        weight_decay = 0.01,
+        save_total_limit = 2,
+        predict_with_generate = True,
     )
 
-    # Translate your text
-    text_to_translate = "Hello, how are you?"
-    result = translator(text_to_translate)
-    print(result)
+    trainer = Seq2SeqTrainer(
+        model = model,
+        args = training_args,
+        train_dataset = tokenized_datasets["train"],
+        eval_dataset = tokenized_datasets["test"],
+        data_collator = data_collator,
+    )
+
+    trainer.train()
+
+if __name__ == "__main__":
+    tokenizer, model = init_model()
+    train_dataset = get_dataset()
+    tokenized_datasets, data_collator = preprocessed_dataset(train_dataset)
+    
+    train_model(model, tokenizer, tokenized_datasets, data_collator)

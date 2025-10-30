@@ -1,49 +1,31 @@
 from transformers import (
-    AutoTokenizer, 
-    AutoModelForSeq2SeqLM, 
+    AutoTokenizer,  
+    AutoModelForSeq2SeqLM,
     pipeline,
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
 )
-from config.secret import secret
+
+import dotenv
+import os
+import json
 
 
-HUGGINGFACE_TOKEN = secret.huggingface_token
+dotenv.load_dotenv()
+HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 
-def init_model(model_name : str = "facebook/nllb-200-distilled-1.3B"):
-    tokenizer = AutoTokenizer.from_pretrained(model_name, token = HUGGINGFACE_TOKEN)
+def init_model(model_name : str = "dhtocks/nllb-200-distilled-350M_en-ko"):
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name, token = HUGGINGFACE_TOKEN)
-    
-    return tokenizer, model
+    tokenizer = AutoTokenizer.from_pretrained(model_name, token = HUGGINGFACE_TOKEN)
+    return model, tokenizer
 
-
-def train_model(model, tokenizer, tokenized_datasets, data_collator):
-    training_args = Seq2SeqTrainingArguments(
-        output_dir = "results",
-        evaluation_strategy = "epoch",
-        learning_rate = 2e-5,
-        per_device_train_batch_size = 16,
-        per_device_eval_batch_size = 16,
-        num_train_epochs = 3,
-        weight_decay = 0.01,
-        save_total_limit = 2,
-        predict_with_generate = True,
-    )
-
-    trainer = Seq2SeqTrainer(
-        model = model,
-        args = training_args,
-        train_dataset = tokenized_datasets["train"],
-        eval_dataset = tokenized_datasets["test"],
-        data_collator = data_collator,
-    )
-
-    trainer.train()
 
 if __name__ == "__main__":
-    tokenizer, model = init_model()
-    train_dataset = get_dataset()
-    tokenized_datasets, data_collator = preprocessed_dataset(train_dataset)
-    
-    train_model(model, tokenizer, tokenized_datasets, data_collator)
+    model, tokenizer = init_model()
+    input_text = """The dominant sequence transduction models are based on complex recurrent or
+                    convolutional neural networks that include an encoder and a decoder."""
+    model_input = tokenizer(input_text, return_tensors = "pt")
+
+    translated = model.generate(**model_input)
+    print(tokenizer.decode(translated[0], skip_special_tokens = True))
